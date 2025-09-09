@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Lovefinder — v3.4 Elite</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Lovefinder Elite — 15-tier compatibility, Age + A,S,E,C, and a premium single-sentence result with dynamic vocabulary.">
+  <style>
+    /* === THEME (Elite) === */
+    :root{
+      --bg-start:#0b0a11; --bg-end:#151322; --bg-rad1:#2b1b44; --bg-rad2:#0e0b18;
+      --ink:#f6f4fb; --ink-soft:#d8d2ea; --muted:#a79fc6; --line:rgba(255,255,255,.12);
+      --accent:#ff7dab; --accent-2:#b78bfa; --accent-3:#ffd27d;
+      --good:#7df7c6; --mid:#ffd27d; --warn:#ffb487; --low:#ff8a9e;
+      --card-bg:rgba(255,255,255,.06); --card-blur:12px;
+      --control-bg:rgba(255,255,255,.06); --control-hover:rgba(255,255,255,.12); --control-ring:rgba(183,139,250,.30);
+      --chip-bg:rgba(255,255,255,.04); --chip-ink:#cbb9da;
+      --cta-ink:#140c16; --cta-shadow:0 12px 30px rgba(255,125,171,.28);
+      --ring-track:rgba(255,255,255,.12); --ring-gap:14px;
+    }
+    [data-theme="light"]{
+      --bg-start:#f8f6fd; --bg-end:#ffffff; --bg-rad1:#efe9ff; --bg-rad2:#ffffff;
+      --ink:#1a1630; --ink-soft:#3d365f; --muted:#6e6791; --line:rgba(0,0,0,.10);
+      --accent:#e8518f; --accent-2:#7b58e3; --accent-3:#f2b648;
+      --good:#1d9a7b; --mid:#c58b1a; --warn:#c06a32; --low:#c23c59;
+      --card-bg:rgba(255,255,255,.92); --card-blur:10px;
+      --control-bg:#ffffff; --control-hover:#f1eefb; --control-ring:rgba(123,88,227,.28);
+      --chip-bg:#f3f0fb; --chip-ink:#6e6791;
+      --cta-ink:#ffffff; --cta-shadow:0 10px 26px rgba(123,88,227,.22);
+      --ring-track:rgba(0,0,0,.08);
+    }
+
+    *{box-sizing:border-box} html,body{height:100%}
+    body{
+      margin:0;color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:
+        radial-gradient(1200px 600px at 15% -10%, var(--bg-rad1) 0%, transparent 60%),
+        radial-gradient(1000px 800px at 110% 15%, var(--bg-rad2) 0%, transparent 55%),
+        linear-gradient(180deg, var(--bg-start), var(--bg-end));
+      position:relative; overflow-x:hidden;
+    }
+    .grain{pointer-events:none; position:fixed; inset:0; opacity:.05; mix-blend-mode:soft-light;
+      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.6"/></svg>');
+      background-size:240px 240px;}
+    .sparkle{pointer-events:none; position:fixed; inset:0;
+      background:
+        radial-gradient(2px 2px at 10% 20%, rgba(255,255,255,.75), transparent 60%),
+        radial-gradient(2px 2px at 30% 80%, rgba(255,255,255,.6), transparent 60%),
+        radial-gradient(2px 2px at 70% 30%, rgba(255,218,185,.8), transparent 60%),
+        radial-gradient(2px 2px at 85% 60%, rgba(255,192,203,.7), transparent 60%),
+        radial-gradient(3px 3px at 50% 50%, rgba(255,255,255,.5), transparent 60%);
+      mix-blend-mode:screen; opacity:0; transition:opacity .8s ease; animation:twinkle 7s linear infinite;}
+    @keyframes twinkle{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+    .celebrate .sparkle{ opacity:.5 } [data-theme="light"] .celebrate .sparkle{ opacity:.28 }
+
+    header{padding:28px 16px 16px; text-align:center}
+    .brand{display:flex; align-items:center; justify-content:center; gap:14px;}
+    .crest{width:38px; height:38px; border-radius:12px; position:relative; flex:none;
+      background:linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.02));
+      border:1px solid var(--line); box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 10px 24px rgba(0,0,0,.22); display:grid; place-items:center;}
+    .crest::after{content:"LF"; font-weight:900; font-size:.95rem;
+      background:linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-3));
+      -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing:.5px;}
+    header h1{margin:0; font-size:1.9rem; letter-spacing:.25px; line-height:1.15;
+      background:linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-3));
+      -webkit-background-clip:text; background-clip:text; color:transparent;}
+    header p{margin:8px 0 0; color:var(--ink-soft)}
+    main{max-width:980px;margin:0 auto;padding:16px;display:grid;gap:18px}
+
+    .card{background:var(--card-bg); border:1px solid var(--line); border-radius:20px; padding:18px;
+      backdrop-filter:blur(var(--card-blur)); box-shadow:0 18px 40px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.10); position:relative;}
+    .card::before{content:""; position:absolute; inset:0; border-radius:20px; pointer-events:none;
+      background:linear-gradient(120deg, rgba(255,255,255,.16), transparent 40%, transparent 60%, rgba(255,255,255,.06) 100%);
+      mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+      -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+      -webkit-mask-composite:xor; mask-composite:exclude; padding:1px;}
+    .section-title{margin:.2rem 0 .8rem 0; font-weight:800; letter-spacing:.3px}
+
+    .grid{display:grid;gap:12px} .two{grid-template-columns:1fr 1fr} @media(max-width:760px){.two{grid-template-columns:1fr}}
+
+    label{font-size:.95rem;color:var(--muted);display:block;margin-bottom:6px}
+    select,input[type="number"]{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
+      background:var(--control-bg); color:var(--ink); outline:none; transition:box-shadow .2s ease,border-color .2s ease,background .2s ease,transform .06s ease;}
+    select:focus,input[type="number"]:focus{border-color:rgba(255,255,255,.28); box-shadow:0 0 0 3px var(--control-ring);}
+    select:active,input[type="number"]:active{transform:translateY(1px)}
+    .pill{display:inline-block;padding:6px 12px;border-radius:999px;border:1px solid var(--line); color:var(--chip-ink); font-size:.85rem; margin:6px 8px 10px 0; background:var(--chip-bg)}
+    .small{font-size:.95rem;color:var(--muted)}
+
+    .num-card .legend{color:var(--muted);font-size:.9rem;margin:2px 0 10px}
+    .num-grid{display:grid;grid-template-columns:repeat(10, minmax(36px,1fr));gap:7px}
+    .num-grid button{border:1px solid var(--line); border-radius:12px; padding:9px 0; background:var(--control-bg); color:var(--ink); cursor:pointer; font-weight:700;
+      transition:transform .06s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease; box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
+    .num-grid button:hover{background:var(--control-hover)} .num-grid button:active{transform:translateY(1px)}
+    .num-grid button.active{background:linear-gradient(90deg,var(--accent),var(--accent-2),var(--accent-3)); color:var(--cta-ink); border-color:transparent; box-shadow:0 6px 18px rgba(255,125,171,.30);}
+
+    .score{font-size:2.6rem;font-weight:900;letter-spacing:.5px;text-shadow:0 1px 0 rgba(0,0,0,.2)}
+    .match-likely{color:var(--good)} .match-match{color:var(--mid)} .match-chal{color:var(--warn)} .match-unre{color:var(--low)}
+    hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+    .blurb{background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); border:1px solid var(--line); border-radius:14px; padding:12px; line-height:1.55; box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
+
+    .cta-wrap{display:flex;justify-content:center}
+    .cta{display:inline-block;min-width:280px;padding:16px 24px;border-radius:16px;font-weight:900;border:0;cursor:pointer;font-size:1.06rem;
+      color:var(--cta-ink); background:linear-gradient(100deg, var(--accent) 0%, var(--accent-2) 45%, var(--accent-3) 100%);
+      background-size:200% 100%; box-shadow:var(--cta-shadow); transition:transform .08s ease, filter .15s ease, background-position .9s ease, opacity .2s ease; opacity:.55;}
+    .cta.ready{opacity:1} .cta:hover{filter:brightness(.98); background-position:100% 0} .cta:active{transform:translateY(1px)}
+    footer{max-width:980px;margin:0 auto;padding:18px 16px;color:var(--muted);text-align:center;font-size:.9rem}
+    :focus{outline:2px solid rgba(183,139,250,.45);outline-offset:3px}
+    .visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+    .theme-fab{position:fixed; left:12px; top:12px; z-index:1000; display:flex; gap:6px; padding:6px 8px; background:var(--card-bg); border:1px solid var(--line); border-radius:12px;
+      backdrop-filter:blur(8px); box-shadow:0 10px 20px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.06);}
+    .theme-fab button{appearance:none; border:1px solid var(--line); border-radius:10px; padding:6px 10px; background:var(--control-bg); color:var(--ink); cursor:pointer; font-size:.85rem; font-weight:700;}
+    .theme-fab button.active{background:linear-gradient(90deg, var(--accent), var(--accent-2)); color:#fff; border-color:transparent;}
+
+    .gauge{--size: 200px; --val: 0deg; margin:4px auto 10px; position:relative; width:var(--size); height:var(--size); filter: drop-shadow(0 12px 28px rgba(0,0,0,.24));}
+    .gauge .ring{position:absolute; inset:0; border-radius:50%;
+      background:conic-gradient(from -90deg, var(--accent) var(--val), var(--ring-track) 0);
+      -webkit-mask: radial-gradient(circle calc(50% - var(--ring-gap)), transparent 98%, black 99%);
+              mask: radial-gradient(circle calc(50% - var(--ring-gap)), transparent 98%, black 99%);
+      transition: background .8s cubic-bezier(.22,1,.36,1);}
+    .gauge .center{position:absolute; inset:var(--ring-gap); border-radius:50%; background:var(--card-bg); border:1px solid var(--line);
+      display:grid; place-items:center; text-align:center; backdrop-filter:blur(var(--card-blur)); box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
+    .gauge .score-big{font-size:2.1rem; font-weight:900; letter-spacing:.4px}
+    .gauge .tier{margin-top:4px; font-weight:800; letter-spacing:.3px; color:var(--ink-soft)}
+    .gauge .note{margin-top:6px; font-size:.95rem; color:var(--muted)}
+    @media (prefers-reduced-motion: reduce){.sparkle{animation:none} .gauge .ring{transition:none} .cta{transition:none}}
+  </style>
+</head>
+<body data-theme="dark">
+  <div class="grain" aria-hidden="true"></div>
+  <div class="sparkle" aria-hidden="true"></div>
+
+  <!-- Floating theme toggle -->
+  <div class="theme-fab" role="tablist" aria-label="Background theme">
+    <button id="themeDark" class="active" role="tab" aria-selected="true">Black</button>
+    <button id="themeLight" role="tab" aria-selected="false">White</button>
+  </div>
+
+  <header>
+    <div class="brand">
+      <div class="crest" aria-hidden="true"></div>
+      <div>
+        <h1>Lovefinder — Elite</h1>
+        <p>15-tier compatibility. Age + A,S,E,C. One-line verdict.</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- YOUR PROFILE -->
+    <section class="card" aria-labelledby="you-title">
+      <h2 id="you-title" class="section-title">Your Profile</h2>
+      <div class="grid two">
+        <div>
+          <label for="gender">Gender</label>
+          <select id="gender">
+            <option value="">-- Select --</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other/Unspecified</option>
+          </select>
+        </div>
+        <div>
+          <label for="age">Age</label>
+          <input id="age" type="number" min="18" max="100" placeholder="e.g. 35" inputmode="numeric">
+        </div>
+      </div>
+    </section>
+
+    <!-- YOUR CLASSES -->
+    <section class="card num-card" aria-labelledby="you-classes-title">
+      <h2 id="you-classes-title" class="section-title">Your Classes (1–10)</h2>
+      <div class="legend">Tap to set levels.</div>
+      <div class="grid two">
+        <div>
+          <label>Appearance</label>
+          <div id="pick-appearance" class="num-grid" data-for="appearance"></div>
+          <select id="appearance" class="visually-hidden"></select>
+        </div>
+        <div>
+          <label>Status</label>
+          <div id="pick-status" class="num-grid" data-for="status"></div>
+          <select id="status" class="visually-hidden"></select>
+        </div>
+        <div>
+          <label>Confidence</label>
+          <div id="pick-confidence" class="num-grid" data-for="confidence"></div>
+          <select id="confidence" class="visually-hidden"></select>
+        </div>
+        <div>
+          <label>Empathy</label>
+          <div id="pick-empathy" class="num-grid" data-for="empathy"></div>
+          <select id="empathy" class="visually-hidden"></select>
+        </div>
+      </div>
+    </section>
+
+    <!-- PARTNER PROFILE -->
+    <section class="card" aria-labelledby="partner-title">
+      <h2 id="partner-title" class="section-title">Desired Partner</h2>
+      <div class="grid two">
+        <div>
+          <label for="pGender">Gender</label>
+          <select id="pGender">
+            <option value="">-- Select --</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other/Unspecified</option>
+          </select>
+        </div>
+        <div>
+          <label for="pAge">Age</label>
+          <input id="pAge" type="number" min="18" max="100" placeholder="e.g. 28" inputmode="numeric">
+        </div>
+      </div>
+    </section>
+
+    <!-- PARTNER CLASSES -->
+    <section class="card num-card" aria-labelledby="p-classes-title">
+      <h2 id="p-classes-title" class="section-title">Partner Classes (1–10)</h2>
+      <div class="legend">Tap to set desired levels.</div>
+      <div class="grid two">
+        <div>
+          <label>Appearance</label>
+          <div id="pick-pAppearance" class="num-grid" data-for="pAppearance"></div>
+          <select id="pAppearance" class="visually-hidden"></select>
+        </div>
+        <div>
+          <label>Status</label>
+          <div id="pick-pStatus" class="num-grid" data-for="pStatus"></div>
+          <select id="pStatus" class="visually-hidden"></select>
+        </div>
+        <div>
+          <label>Confidence</label>
+          <div id="pick-pConfidence" class="num-grid" data-for="pConfidence"></div>
+          <select id="pConfidence" class="visually-hidden"></select>
+        </div>
+        <div>
+          <label>Empathy</label>
+          <div id="pick-pEmpathy" class="num-grid" data-for="pEmpathy"></div>
+          <select id="pEmpathy" class="visually-hidden"></select>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACTIONS -->
+    <section class="card" aria-label="Actions">
+      <div class="cta-wrap">
+        <button id="calcBtn" class="cta" aria-label="Calculate">Calculate</button>
+      </div>
+      <div class="small" style="text-align:center;margin-top:8px">Button brightens when all required choices are set.</div>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="result" class="card" hidden>
+      <h2 class="section-title">Result</h2>
+      <div class="gauge" id="gauge">
+        <div class="ring"></div>
+        <div class="center">
+          <div class="score-big" id="gScore">0</div>
+          <div class="tier" id="gTier">—</div>
+          <div class="note" id="gNote">Compatibility Index</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:6px">
+        <span id="youMeta" class="pill"></span>
+        <span id="pMeta" class="pill"></span>
+      </div>
+
+      <hr>
+      <div id="matchLevel" class="score" style="text-align:center"></div>
+      <div class="small" id="labelText" style="margin-top:4px;text-align:center"></div>
+      <hr>
+      <!-- One sentence only, with dynamic vocabulary -->
+      <div id="oneLine" class="blurb"></div>
+    </section>
+  </main>
+
+  <footer>
+    v3.4 — 15 levels + dynamic vocabulary (200+ words). Elite visuals retained.
+  </footer>
+
+  <script>
+  // ---------- helpers ----------
+  const $=(id)=>document.getElementById(id);
+  const val=(id)=>{const el=$(id);return el?String(el.value||"").trim():"";};
+  const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+  function num(id,min=1,max=10){const s=val(id);const x=parseInt(s,10);if(isNaN(x))return 0;return Math.max(min,Math.min(max,x));}
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function pick2(arr){ if(arr.length<2) return [pick(arr)]; let a=pick(arr), b=pick(arr); for(let i=0;i<6 && b===a;i++) b=pick(arr); return [a,b]; }
+
+  // Hidden selects 1..10 + number pickers
+  function fill10(id){ const el=$(id); el.innerHTML = '<option value="">--</option>' + Array.from({length:10},(_,i)=>`<option>${i+1}</option>`).join(''); }
+  ["appearance","status","confidence","empathy","pAppearance","pStatus","pConfidence","pEmpathy"].forEach(fill10);
+  function buildPicker(containerId){
+    const c=$(containerId); const selectId=c.getAttribute("data-for");
+    c.innerHTML = Array.from({length:10},(_,i)=>`<button type="button" data-val="${i+1}">${i+1}</button>`).join('');
+    c.addEventListener("click",(e)=>{
+      const b=e.target.closest("button"); if(!b) return;
+      const v=b.getAttribute("data-val");
+      c.querySelectorAll("button").forEach(x=>x.classList.toggle("active", x===b));
+      $(selectId).value=v; updateReady();
+    });
+  }
+  ["pick-appearance","pick-status","pick-confidence","pick-empathy",
+   "pick-pAppearance","pick-pStatus","pick-pConfidence","pick-pEmpathy"].forEach(buildPicker);
+
+  // Theme toggle
+  const themeDarkBtn=$("themeDark"), themeLightBtn=$("themeLight");
+  function setTheme(mode){
+    const m=(mode==="light")?"light":"dark";
+    document.documentElement.setAttribute("data-theme",m);
+    themeDarkBtn.classList.toggle("active",m==="dark");
+    themeLightBtn.classList.toggle("active",m==="light");
+    themeDarkBtn.setAttribute("aria-selected",m==="dark");
+    themeLightBtn.setAttribute("aria-selected",m==="light");
+    try{localStorage.setItem("lovefinder-theme",m);}catch(_){}
+  }
+  themeDarkBtn.onclick=()=>setTheme("dark");
+  themeLightBtn.onclick=()=>setTheme("light");
+  setTheme((()=>{try{return localStorage.getItem("lovefinder-theme")||"dark";}catch(_){return "dark";}})());
+
+  // ---------- Model (Love only, Age + Stats) ----------
+  const WEIGHTS={
+    "Female":{appearance:0.23,status:0.38,empathy:0.12,confidence:0.27},
+    "Male":{appearance:0.46,status:0.12,empathy:0.22,confidence:0.20},
+    "Other/Unspecified":{appearance:0.30,status:0.25,empathy:0.25,confidence:0.20}
+  };
+  function baseAgeCurve(age){ const mid=(age>=30&&age<=45)?1.05:1.0; const old=age>55?Math.max(0.75,1-(age-55)*0.01):1.0; return mid*old; }
+  function traitUtility(person,w){ const s=k=>clamp(person.traits[k],1,10); const raw=w.appearance*s("appearance")+w.status*s("status")+w.empathy*s("empathy")+w.confidence*s("confidence"); return raw/10; }
+  function directionalGapMultiplier(g, evalAge, targetAge, utility10){
+    const gap=targetAge-evalAge; const abs=Math.abs(gap); const opener=utility10>=9?0.5:(utility10>=8.5?0.65:1.0); let mult=1.0;
+    if(g==="Female"){ if(gap>0){ if(abs<=4)mult=1.08; else if(abs<=12)mult=1.0; else mult=1.0-Math.min(0.35,(abs-12)*0.03); }
+      else if(gap<0){ if(abs<=2)mult=0.98; else if(abs<=8)mult=0.9; else mult=1.0-Math.min(0.45,(abs-8)*0.04);} }
+    else if(g==="Male"){ if(gap<0){ if(abs<=8)mult=1.06; else if(abs<=12)mult=1.0; else mult=1.0-Math.min(0.30,(abs-12)*0.025);}
+      else if(gap>0){ if(abs<=6)mult=0.98; else if(abs<=12)mult=0.92; else mult=1.0-Math.min(0.40,(abs-12)*0.03);} }
+    else { if(abs<=12) mult=1.0; else mult=1.0 - Math.min(0.35,(abs-12)*0.025); }
+    return 1.0 - (1.0 - mult)*opener;
+  }
+  function sideFit(evaluator,target){
+    const w=WEIGHTS[evaluator.gender]||WEIGHTS["Other/Unspecified"];
+    const u=traitUtility(target,w), ageBase=baseAgeCurve(target.age), dir=directionalGapMultiplier(evaluator.gender, evaluator.age, target.age, u*10);
+    return {fit:clamp(u*ageBase*dir,0,1), utility:u, ageBase, dir, weights:w};
+  }
+  function mutualMatch(a,b){ const L=sideFit(a,b), R=sideFit(b,a); const score=Math.round(Math.sqrt(L.fit*R.fit)*100); return {score,left:L,right:R}; }
+
+  // Context = Age gap only (background removed)
+  function contextModifier(you,partner){
+    let mod=0; const gap=Math.abs(you.age-partner.age);
+    if(gap>=20) mod+=6; else if(gap>=15) mod+=3; else if(gap>=10) mod+=1;
+    return mod;
+  }
+  function applyContext(score,you,partner){ const mod=contextModifier(you,partner); const damp=Math.max(0.6,1-mod*0.02); return Math.round(score*damp); }
+
+  // LUDACRIS
+  const LUDACRIS={gapUnder25:30, teenVsOlder:40, extreme70v25:true, delta:12, deltaAge:15};
+  function isLudacris(you,partner){
+    const gap=Math.abs(you.age-partner.age);
+    const targetUnder25=partner.age<25, targetTeen=partner.age<=19, seeker70plus=you.age>=70;
+    const wantTotal=(partner.traits.appearance+partner.traits.status+partner.traits.empathy+partner.traits.confidence);
+    const haveTotal=(you.traits.appearance+you.traits.status+you.traits.empathy+you.traits.confidence);
+    const demandDelta=wantTotal-haveTotal;
+    if(targetUnder25&&gap>=LUDACRIS.gapUnder25) return true;
+    if(targetTeen&&you.age>=LUDACRIS.teenVsOlder) return true;
+    if(seeker70plus&&partner.age<=25&&LUDACRIS.extreme70v25) return true;
+    if(demandDelta>=LUDACRIS.delta&&(you.age-partner.age)>=LUDACRIS.deltaAge) return true;
+    return false;
+  }
+
+  // ---------- 15 Levels ----------
+  const LEVELS = [
+    {name:"Transcendent", min:98, max:100},
+    {name:"Magnetic",     min:90, max:97},
+    {name:"Likely",       min:80, max:89},
+    {name:"Promising",    min:70, max:79},
+    {name:"Match",        min:65, max:69},
+    {name:"Workable",     min:60, max:64},
+    {name:"Mixed",        min:55, max:59},
+    {name:"Challenging",  min:50, max:54},
+    {name:"Fragile",      min:45, max:49},
+    {name:"Unrealistic",  min:35, max:44},
+    {name:"Mismatch",     min:25, max:34},
+    {name:"Distant",      min:15, max:24},
+    {name:"Void",         min:5,  max:14},
+    {name:"Null",         min:0,  max:4}
+  ];
+  function tierFromScore(s){
+    for(const L of LEVELS){ if(s>=L.min && s<=L.max) return L.name; }
+    return "Null";
+  }
+  function tierColorClass(t){
+    if(t==="Transcendent"||t==="Magnetic"||t==="Likely"||t==="Promising") return "match-likely";
+    if(t==="Match"||t==="Workable") return "match-match";
+    if(t==="Mixed"||t==="Challenging"||t==="Fragile") return "match-chal";
+    return "match-unre";
+  }
+
+  // ---------- Dynamic vocabulary (200+ words) ----------
+  const WORD_BANK = {
+    "Transcendent": ["fated","singular","once-in-a-lifetime","serendipity","effortless","rare","numinous","inevitable","golden","seamless","weightless","celestial","diamond-cut","unmistakable","beyond-doubt"],
+    "Magnetic": ["irresistible","charged","radiant","gravitational","pulling","undeniable","alive","glowing","compelling","electric","drawn","captivating","mesmeric","potent","luminous"],
+    "Likely": ["smooth","aligned","easy","natural","green-light","clear","solid","flowing","balanced","steady","comfortable","locked-in","assured","confident","welcoming"],
+    "Promising": ["upward","encouraging","hopeful","developing","warming","bright","forming","rising","building","open","fertile","inviting","positive","growing","buoyant"],
+    "Match": ["viable","workable","sound","steady","solid-ground","practical","respectful","reasonable","sensible","constructive","cohesive","grounded","reassuring","fitting","compatible"],
+    "Workable": ["doable","balanced","measured","tempered","manageable","even","contained","moderate","considered","functional","serviceable","plain","adequate","middling","fair"],
+    "Mixed": ["patchy","variable","on-off","uneven","ambivalent","unclear","alternating","stop-start","two-sided","inconsistent","wavering","toggling","flicker","dual","swinging"],
+    "Challenging": ["friction","hurdles","effortful","uphill","heavy-lift","thorny","labored","awkward","testing","tension","grit","strain","grinding","sticking","rough"],
+    "Fragile": ["delicate","brittle","thin-ice","hairline","shaky","tenuous","glass-like","precarious","fine","cracking","unstable","fading","trembling","wilting","slender"],
+    "Unrealistic": ["misaligned","off-key","unlikely","remote","far-apart","low-vibe","detached","discordant","off-track","improbable","strained","forced","inapt","ill-fitted","hollow"],
+    "Mismatch": ["clashing","incompatible","at-odds","crossed-wires","contrary","disparate","divergent","conflicted","disjoint","skewed","ill-suited","misfiring","off-beat","askew","wayward"],
+    "Distant": ["far","remote","cold","muted","apart","thin","faint","dim","distant","lagging","stretched","diffuse","sparse","loose","out-of-range"],
+    "Void": ["flat","vacant","blank","hollowed","empty","airless","drained","spent","bloodless","lifeless","numb","quiet","still","mute","vacuum"],
+    "Null": ["nil","zeroed","voided","nonstarter","dead-end","stone-cold","absent","null-set","vacant-slot","blank-slate","no-signal","blackout","void-null","zero","none"]
+  };
+  // quick count ~15 * 14 = 210+ entries
+
+  // ---------- One-line templates (use vocab) ----------
+  const ONE_LINE = {
+    "Transcendent": "It feels {w1} and {w2}—lean in and protect the pace.",
+    "Magnetic": "The pull is {w1} and {w2}; momentum is on your side.",
+    "Likely": "Aligned and {w1}; the path looks {w2}.",
+    "Promising": "A {w1} start with a {w2} arc—nurture it.",
+    "Match": "A {w1}, {w2} pairing—steady effort will grow this.",
+    "Workable": "This is {w1} and {w2}; keep it simple and consistent.",
+    "Mixed": "Signals are {w1} and {w2}—pace lightly and read the room.",
+    "Challenging": "Expect {w1} and {w2}; plan short, clear steps.",
+    "Fragile": "Chemistry feels {w1} and {w2}—low pressure only.",
+    "Unrealistic": "It reads {w1} and {w2}—save your energy.",
+    "Mismatch": "Fundamentals are {w1} and {w2}; bow out gracefully.",
+    "Distant": "The vibe is {w1} and {w2}; not close enough to pursue.",
+    "Void": "It’s {w1} and {w2}; there’s nothing to build on.",
+    "Null": "Completely {w1} and {w2}; close the tab."
+  };
+
+  // ---------- Ready state ----------
+  function isReady(){
+    if(!(parseInt(val("age"),10)>=18 && parseInt(val("age"),10)<=100)) return false;
+    if(!(parseInt(val("pAge"),10)>=18 && parseInt(val("pAge"),10)<=100)) return false;
+    if(!val("gender") || !val("pGender")) return false;
+    const need=["appearance","status","confidence","empathy","pAppearance","pStatus","pConfidence","pEmpathy"];
+    for(const id of need){ if(num(id)===0) return false; }
+    return true;
+  }
+  function updateReady(){ $("calcBtn").classList.toggle("ready", isReady()); }
+  document.addEventListener("input",(e)=>{ if(e.target.matches("select,input[type=number]")) updateReady(); });
+
+  // ---------- Gauge ----------
+  function setGauge(score,tier){
+    const g=$("gauge"), ring=g.querySelector(".ring"); const deg=Math.round(score*3.6);
+    let fill;
+    const s=getComputedStyle(document.documentElement);
+    const a=s.getPropertyValue('--accent'), b=s.getPropertyValue('--accent-2'), c=s.getPropertyValue('--accent-3');
+    if(["Transcendent","Magnetic","Likely","Promising"].includes(tier)){
+      fill=`conic-gradient(from -90deg, ${a} 0deg, ${b} ${deg/2}deg, ${c} var(--val), var(--ring-track) 0)`;
+    } else if(["Match","Workable"].includes(tier)){
+      fill=`conic-gradient(from -90deg, var(--mid) var(--val), var(--ring-track) 0)`;
+    } else if(["Mixed","Challenging","Fragile"].includes(tier)){
+      fill=`conic-gradient(from -90deg, var(--warn) var(--val), var(--ring-track) 0)`;
+    } else {
+      fill=`conic-gradient(from -90deg, var(--low) var(--val), var(--ring-track) 0)`;
+    }
+    ring.style.setProperty('--val',deg+'deg'); ring.style.background=fill;
+    $("gScore").textContent=score; $("gTier").textContent=tier;
+  }
+
+  // ---------- IO ----------
+  function readPerson(prefix){
+    if(prefix==="p"){
+      return {
+        gender: val("pGender")||"Other/Unspecified",
+        age: parseInt(val("pAge"),10)||0,
+        traits:{
+          appearance:num("pAppearance")||0,
+          status:num("pStatus")||0,
+          empathy:num("pEmpathy")||0,
+          confidence:num("pConfidence")||0
+        }
+      };
+    }
+    return {
+      gender: val("gender")||"Other/Unspecified",
+      age: parseInt(val("age"),10)||0,
+      traits:{
+        appearance:num("appearance")||0,
+        status:num("status")||0,
+        empathy:num("empathy")||0,
+        confidence:num("confidence")||0
+      }
+    };
+  }
+
+  // ---------- CALCULATE (single sentence + 15 tiers + vocab) ----------
+  const calcBtn=$("calcBtn");
+  calcBtn.onclick=async function(e){
+    const btn=e.currentTarget; if(btn.dataset.busy==="1") return; btn.dataset.busy="1"; btn.disabled=true;
+
+    const resEl=$("result"), youMeta=$("youMeta"), pMeta=$("pMeta"), matchEl=$("matchLevel"), labelEl=$("labelText"), oneLine=$("oneLine");
+    youMeta.textContent=""; pMeta.textContent=""; matchEl.textContent=""; labelEl.textContent=""; oneLine.textContent="";
+
+    try{
+      if(!isReady()){ alert("Please set: genders, ages, and all class levels (1–10) for both profiles."); document.body.classList.remove("celebrate"); return; }
+      const me=readPerson(""), them=readPerson("p");
+
+      // LUDACRIS override
+      if(isLudacris(me,them)||isLudacris(them,me)){
+        resEl.hidden=false;
+        youMeta.textContent=`${me.gender}, ${me.age} • A${me.traits.appearance}/S${me.traits.status}/E${me.traits.empathy}/C${me.traits.confidence}`;
+        pMeta.textContent=`${them.gender}, ${them.age} • A${them.traits.appearance}/S${them.traits.status}/E${them.traits.empathy}/C${them.traits.confidence}`;
+        matchEl.className="score match-unre"; matchEl.textContent="LUDACRIS";
+        labelEl.textContent="Result withheld. No comments.";
+        oneLine.textContent="Adjust ages or expectations and try again.";
+        setGauge(0,"Null"); document.body.classList.remove("celebrate"); return;
+      }
+
+      const res=mutualMatch(me,them);
+      let finalScore=applyContext(res.score,me,them); finalScore=clamp(finalScore,0,100);
+      const tier=tierFromScore(finalScore);
+      const cls=tierColorClass(tier);
+
+      youMeta.textContent=`${me.gender}, ${me.age} • A${me.traits.appearance}/S${me.traits.status}/E${me.traits.empathy}/C${me.traits.confidence}`;
+      pMeta.textContent=`${them.gender}, ${them.age} • A${them.traits.appearance}/S${them.traits.status}/E${them.traits.empathy}/C${them.traits.confidence}`;
+
+      matchEl.className="score "+cls; matchEl.textContent=`${finalScore} / 100`;
+      labelEl.textContent=tier;
+
+      // One sentence with dynamic vocab for the tier
+      const bank = WORD_BANK[tier] || WORD_BANK["Mixed"];
+      const [w1,w2]=pick2(bank);
+      const tpl = ONE_LINE[tier] || "It’s {w1} and {w2}.";
+      oneLine.textContent = tpl.replace("{w1}", w1).replace("{w2}", w2);
+
+      resEl.hidden=false;
+      setGauge(finalScore,tier);
+      if(["Transcendent","Magnetic","Likely","Promising","Match"].includes(tier)) document.body.classList.add("celebrate");
+      else document.body.classList.remove("celebrate");
+
+    } finally {
+      btn.dataset.busy="0"; btn.disabled=false;
+    }
+  };
+
+  // init
+  function updateOnLoad(){ $("calcBtn").classList.toggle("ready", isReady()); }
+  updateOnLoad();
+  </script>
+</body>
+</html>
