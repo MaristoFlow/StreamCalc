@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="sv" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Streamingkostnad – Sverige</title>
+  <style>
+    :root{
+      --bg:#0f1115;--card:#141820;--muted:#9aa3b2;--text:#e9edf5;--accent:#7aa2ff;--line:#202736;
+      --chip:#242b3a;--glow-color: rgba(122,162,255,.28);--glow-bg: rgba(122,162,255,.08)
+    }
+    html[data-theme="light"]{
+      --bg:#f6f7fb;--card:#ffffff;--muted:#5b6575;--text:#141820;--accent:#3b6aff;--line:#e4e7ef;
+      --chip:#eef2ff;--glow-color: rgba(59,106,255,.28);--glow-bg: rgba(59,106,255,.08)
+    }
+
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    header{padding:20px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    header h1{margin:0;font-size:18px;font-weight:700}
+    header .right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    main{max-width:1100px;margin:0 auto;padding:18px;display:grid;grid-template-columns: 1fr 360px;gap:18px}
+    @media (max-width: 980px){main{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .services{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    @media (max-width:720px){.services{grid-template-columns:1fr}}
+    .service{display:flex;flex-direction:column;gap:10px}
+    .service header{display:flex;justify-content:space-between;align-items:center;border:0;padding:0}
+    .service h2{font-size:15px;margin:0}
+    .muted{color:var(--muted)}
+    .plans{display:grid;gap:8px;margin-bottom:6px}
+    .plan{
+      display:flex;align-items:center;justify-content:space-between;
+      border:1px solid var(--line);border-radius:12px;padding:10px;
+      transition: box-shadow .18s ease, border-color .18s ease, transform .06s ease, background .18s ease;
+      background: transparent;
+    }
+    .plan:hover{transform: translateY(-1px)}
+    .plan label{display:flex;align-items:center;gap:10px;cursor:pointer}
+    .plan input{accent-color: var(--accent)}
+    .price{font-weight:700}
+    .chip{background:var(--chip);border:1px dashed var(--line);color:var(--muted);padding:2px 8px;border-radius:999px;font-size:11px}
+    .total-card .row{display:flex;justify-content:space-between;margin:8px 0}
+    .total-card .grand{font-size:22px;font-weight:800}
+    .kicker{font-size:12px}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    .btn{background:var(--accent);color:#fff;border:0;border-radius:12px;padding:10px 12px;font-weight:700;cursor:pointer}
+    .btn.secondary{background:transparent;color:inherit;border:1px solid var(--line)}
+    .note{font-size:12px;color:var(--muted)}
+    .hr{border:0;border-top:1px dashed var(--line);margin:8px 0}
+
+    /* Valmarkering */
+    .selected{border-color: var(--accent);box-shadow: 0 0 0 2px var(--glow-color);background: var(--glow-bg)}
+    .subhead{font-size:12px;color:var(--muted);margin-top:-2px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Streamingkostnad – Sverige</h1>
+    <div class="right">
+      <label class="muted">Extra moms/påslag %
+        <input type="number" id="vat" value="0" min="0" max="50" step="1" style="width:84px"/>
+      </label>
+
+      <label class="theme-toggle" style="display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:6px 10px;cursor:pointer;font-weight:600">
+        <span id="themeLabel">Mörkt läge</span>
+        <input id="themeSwitch" type="checkbox" aria-label="Växla tema"
+               style="appearance:none;width:34px;height:18px;background:var(--line);border-radius:999px;position:relative;outline:none;cursor:pointer">
+      </label>
+
+      <button id="resetBtn" class="btn secondary">Återställ</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="services" id="services"></div>
+    </section>
+
+    <aside class="card total-card">
+      <h2 style="margin-top:0">Summering</h2>
+      <div class="chips" id="selectedChips"></div>
+
+      <div class="row">
+        <div>Summa per månad</div>
+        <div id="monthly" class="grand" aria-live="polite">0 SEK</div>
+      </div>
+      <div class="row kicker">
+        <div>Varav extra moms/påslag</div>
+        <div id="vatAmt" aria-live="polite">0 SEK</div>
+      </div>
+      <hr class="hr">
+      <div class="row">
+        <div>Summa per år (12×)</div>
+        <div id="yearly" aria-live="polite">0 SEK</div>
+      </div>
+      <div class="row kicker">
+        <div>Per vecka</div>
+        <div id="perWeek" aria-live="polite">0 SEK</div>
+      </div>
+      <hr class="hr">
+      <div class="row"><div>Valda tjänster</div><div id="count" aria-live="polite">0</div></div>
+      <p class="note">Tips: kopiera summeringen och klistra in i mejl eller offert.</p>
+      <button id="copyBtn" class="btn" style="width:100%">Kopiera summering</button>
+    </aside>
+  </main>
+
+<script>
+/* === KONFIG – fasta SEK-priser (inkl moms i listpris) === */
+const CONFIG = {
+  currency: 'SEK',
+  services: [
+    {
+      id:'netflix', name:'Netflix',
+      plans:[
+        { id:'basic',    label:'Basic',            priceSEK: 109 },
+        { id:'standard', label:'Standard',         priceSEK: 149 },
+        { id:'premium',  label:'Premium (4K)',     priceSEK: 199 }
+      ]
+    },
+    {
+      id:'disney', name:'Disney+',
+      plans:[
+        { id:'ads',      label:'Standard med reklam',           priceSEK: 59  },
+        { id:'standard', label:'Standard (utan reklam)',        priceSEK: 99  },
+        { id:'premium',  label:'Premium (4K, utan reklam)',     priceSEK: 139 }
+      ]
+    },
+    {
+      id:'max', name:'Max (HBO/Discovery)',
+      /* Viktigt: Sport är egna fristående planer – inget tillägg krävs */
+      plans:[
+        { id:'basicAds',    label:'Basic med reklam',               priceSEK: 89  },
+        { id:'standard',    label:'Standard (utan reklam, FHD)',    priceSEK: 129 },
+        { id:'premium',     label:'Premium (4K, utan reklam)',      priceSEK: 169 },
+        { id:'sportBase',   label:'Sport Bas (live-sport)',         priceSEK: 260 },
+        { id:'sportPremium',label:'Sport Premium (mer live & HD)',  priceSEK: 360 },
+        { id:'sportTotal',  label:'Sport Total (störst utbud)',     priceSEK: 460 }
+      ],
+      groups: [
+        { title: 'Underhållning', ids: ['basicAds','standard','premium'] },
+        { title: 'Sport',         ids: ['sportBase','sportPremium','sportTotal'] }
+      ]
+    },
+    {
+      id:'prime', name:'Amazon Prime Video',
+      plans:[
+        { id:'ads',      label:'Med reklam (ingår i Prime)',    priceSEK: 59  },
+        { id:'adfree',   label:'Utan reklam (Prime + tillägg)', priceSEK: 88  }
+      ]
+    },
+    {
+      id:'tv4', name:'TV4 Play',
+      plans:[
+        { id:'free',       label:'Gratis (med reklam)',           priceSEK: 0   },
+        { id:'plus',       label:'Plus (med reklam)',             priceSEK: 69  },
+        { id:'plusNoAds',  label:'Plus (utan reklam)',            priceSEK: 169 },
+        { id:'sportAds',   label:'Sport (med reklam)',            priceSEK: 349 },
+        { id:'sport',      label:'Sport (utan reklam)',           priceSEK: 399 },
+        { id:'sportTotal', label:'Sport Total (utan reklam)',     priceSEK: 599 }
+      ]
+    },
+    {
+      id:'viaplay', name:'Viaplay',
+      plans:[
+        { id:'films',    label:'Film & Serier',                   priceSEK: 169 },
+        { id:'medium',   label:'Medium (sport)',                  priceSEK: 399 },
+        { id:'totalAds', label:'Total (med reklam)',              priceSEK: 649 },
+        { id:'total',    label:'Total (utan reklam)',             priceSEK: 699 }
+      ]
+    }
+  ]
+};
+
+let selectedPlans = {}; // { serviceId: planId }
+
+/* === Utils === */
+const fmt = (value) => `${value.toFixed(0)} SEK`;
+const $ = (sel, root=document)=>root.querySelector(sel);
+const $$ = (sel, root=document)=>[...root.querySelectorAll(sel)];
+
+/* === Rendering === */
+function renderServices(){
+  const wrap = document.getElementById('services');
+  wrap.innerHTML = '';
+  CONFIG.services.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'card service';
+
+    // Stöd för (frivilliga) grupper, används för Max
+    let groupsHTML = '';
+    if (s.groups && s.groups.length){
+      groupsHTML = s.groups.map(g=>{
+        const rows = g.ids.map(pid=>{
+          const p = s.plans.find(x=>x.id===pid);
+          const radioId = `${s.id}-${p.id}`;
+          return `
+            <div class="plan">
+              <label for="${radioId}">
+                <input type="radio" name="${s.id}" id="${radioId}" value="${p.id}">
+                <div>${p.label}</div>
+              </label>
+              <div class="price">${fmt(p.priceSEK)}</div>
+            </div>`;
+        }).join('');
+        return `<div class="subhead">${g.title}</div><div class="plans">${rows}</div>`;
+      }).join('');
+    }
+
+    card.innerHTML = `
+      <header>
+        <h2>${s.name}</h2>
+        <span class="muted">Välj paket/plan</span>
+      </header>
+      ${groupsHTML || `<div class="plans" id="plans-${s.id}"></div>`}
+      <div class="note">Valt: <span id="sel-${s.id}">Inget</span></div>
+    `;
+    wrap.appendChild(card);
+
+    // Om grupper användes ovan, behöver vi bara hooka inputs; annars rendera vanliga planer här
+    if (!(s.groups && s.groups.length)){
+      const plansDiv = card.querySelector('#plans-'+s.id);
+      s.plans.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'plan';
+        const radioId = `${s.id}-${p.id}`;
+        row.innerHTML = `
+          <label for="${radioId}">
+            <input type="radio" name="${s.id}" id="${radioId}" value="${p.id}">
+            <div>${p.label}</div>
+          </label>
+          <div class="price">${fmt(p.priceSEK)}</div>
+        `;
+        plansDiv.appendChild(row);
+      });
+    }
+
+    // Lyssna på alla radio i denna service
+    $$(`input[type=radio][name="${s.id}"]`, card).forEach(input=>{
+      input.addEventListener('change', ()=>{
+        selectedPlans[s.id] = input.value;
+        highlightSelectedPlan(s.id, input.id);
+        const plan = s.plans.find(p=>p.id===input.value);
+        document.getElementById('sel-'+s.id).textContent = plan ? plan.label : 'Inget';
+        updateTotals();
+      });
+    });
+  });
+  updateTotals();
+}
+
+/* Markera vald plan visuellt */
+function highlightSelectedPlan(serviceId, pickedRadioId){
+  // kan finnas flera .plans-block om grupper används
+  $$(`.plan`, document.getElementById('services'))
+    .filter(el => el.querySelector(`input[name="${serviceId}"]`))
+    .forEach(el => el.classList.remove('selected'));
+  const picked = document.getElementById(pickedRadioId)?.closest('.plan');
+  if (picked) picked.classList.add('selected');
+}
+
+/* Summeringar */
+function updateTotals(){
+  let monthlySEK = 0;
+  const chipsWrap = document.getElementById('selectedChips');
+  chipsWrap.innerHTML = '';
+
+  // Planer
+  Object.entries(selectedPlans).forEach(([sid,pid])=>{
+    const svc = CONFIG.services.find(s=>s.id===sid);
+    const plan = svc?.plans.find(p=>p.id===pid);
+    if(plan){
+      monthlySEK += plan.priceSEK||0;
+      const chip = document.createElement('span');
+      chip.className='chip';
+      chip.textContent = `${svc.name}: ${plan.label}`;
+      chipsWrap.appendChild(chip);
+    }
+  });
+
+  const vatPct = parseFloat(document.getElementById('vat').value)||0;
+  const vatAmtSEK = monthlySEK * (vatPct/100);
+  const monthlyWithVAT = monthlySEK + vatAmtSEK;
+
+  document.getElementById('monthly').textContent = fmt(monthlyWithVAT);
+  document.getElementById('vatAmt').textContent = fmt(vatAmtSEK);
+  document.getElementById('yearly').textContent = fmt(monthlyWithVAT*12);
+  document.getElementById('perWeek').textContent = fmt((monthlyWithVAT*12/52));
+  document.getElementById('count').textContent = Object.keys(selectedPlans).length;
+}
+
+/* Kopiera summering */
+function copySummary(){
+  let lines = [];
+  lines.push('Streamingkostnad – Summering');
+  lines.push('');
+
+  Object.entries(selectedPlans).forEach(([sid,pid])=>{
+    const svc = CONFIG.services.find(s=>s.id===sid);
+    const plan = svc?.plans.find(p=>p.id===pid);
+    if(plan) lines.push(`• ${svc.name} — ${plan.label}: ${fmt(plan.priceSEK)}/månad`);
+  });
+
+  const total = document.getElementById('monthly').textContent;
+  lines.push('');
+  lines.push(`Totalt: ${total}`);
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+    const btn = document.getElementById('copyBtn');
+    const old = btn.textContent;
+    btn.textContent = 'Kopierat!';
+    setTimeout(()=>btn.textContent = old, 1200);
+  });
+}
+
+/* Återställ allt */
+function resetAll(){
+  selectedPlans = {};
+  document.querySelectorAll('input[type=radio]').forEach(r=>r.checked=false);
+  document.querySelectorAll('.plan.selected').forEach(el=>el.classList.remove('selected'));
+  CONFIG.services.forEach(s=>{
+    const el = document.getElementById('sel-'+s.id);
+    if(el) el.textContent = 'Inget';
+  });
+  updateTotals();
+}
+
+/* Tema – toggle + persistence */
+function initTheme(){
+  const saved = localStorage.getItem('streaming-theme');
+  const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  const initial = saved || (prefersLight ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', initial);
+  const isLight = initial === 'light';
+  const sw = document.getElementById('themeSwitch');
+  sw.checked = isLight;
+  document.getElementById('themeLabel').textContent = isLight ? 'Ljust läge' : 'Mörkt läge';
+
+  sw.addEventListener('change', ()=>{
+    const theme = sw.checked ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('themeLabel').textContent = sw.checked ? 'Ljust läge' : 'Mörkt läge';
+    localStorage.setItem('streaming-theme', theme);
+  });
+}
+
+/* Init */
+renderServices();
+initTheme();
+
+document.getElementById('vat').addEventListener('input', updateTotals);
+document.getElementById('copyBtn').addEventListener('click', copySummary);
+document.getElementById('resetBtn').addEventListener('click', resetAll);
+</script>
+</body>
+</html>
