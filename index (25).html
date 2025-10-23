@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Streamingkostnad – Sverige</title>
+  <title>Bredbands- och TV-kompassen – Sverige</title>
   <style>
     :root{
       --bg:#0f1115;--card:#141820;--muted:#9aa3b2;--text:#e9edf5;--accent:#7aa2ff;--line:#202736;
@@ -21,8 +21,11 @@
     main{max-width:1100px;margin:0 auto;padding:18px;display:grid;grid-template-columns: 1fr 360px;gap:18px}
     @media (max-width: 980px){main{grid-template-columns:1fr}}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
-    .services{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-    @media (max-width:720px){.services{grid-template-columns:1fr}}
+
+    /* Två kolumner i tjänstelistan: vänster (bredband+sport), höger (tv+streaming+film) */
+    .columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    @media (max-width:720px){.columns{grid-template-columns:1fr}}
+
     .service{display:flex;flex-direction:column;gap:10px}
     .service header{display:flex;justify-content:space-between;align-items:center;border:0;padding:0}
     .service h2{font-size:15px;margin:0}
@@ -48,14 +51,13 @@
     .note{font-size:12px;color:var(--muted)}
     .hr{border:0;border-top:1px dashed var(--line);margin:8px 0}
 
-    /* Valmarkering */
     .selected{border-color: var(--accent);box-shadow: 0 0 0 2px var(--glow-color);background: var(--glow-bg)}
     .subhead{font-size:12px;color:var(--muted);margin-top:-2px}
   </style>
 </head>
 <body>
   <header>
-    <h1>Streamingkostnad – Sverige</h1>
+    <h1>Bredbands- och TV-kompassen – Sverige</h1>
     <div class="right">
       <label class="muted">Extra moms/påslag %
         <input type="number" id="vat" value="0" min="0" max="50" step="1" style="width:84px"/>
@@ -72,102 +74,87 @@
   </header>
 
   <main>
+    <!-- Tjänster (vänster sektion) -->
     <section class="card">
-      <div class="services" id="services"></div>
+      <div class="columns">
+        <!-- VÄNSTER KOLUMN: Bredband + Sport -->
+        <div id="leftCol"></div>
+        <!-- HÖGER KOLUMN: TV + Streaming + Film -->
+        <div id="rightCol"></div>
+      </div>
     </section>
 
+    <!-- Summering (höger sektion) -->
     <aside class="card total-card">
       <h2 style="margin-top:0">Summering</h2>
       <div class="chips" id="selectedChips"></div>
 
-      <div class="row">
-        <div>Summa per månad</div>
-        <div id="monthly" class="grand" aria-live="polite">0 SEK</div>
-      </div>
-      <div class="row kicker">
-        <div>Varav extra moms/påslag</div>
-        <div id="vatAmt" aria-live="polite">0 SEK</div>
-      </div>
+      <div class="row"><div>Summa per månad</div><div id="monthly" class="grand" aria-live="polite">0 SEK</div></div>
+      <div class="row kicker"><div>Varav extra moms/påslag</div><div id="vatAmt" aria-live="polite">0 SEK</div></div>
       <hr class="hr">
-      <div class="row">
-        <div>Summa per år (12×)</div>
-        <div id="yearly" aria-live="polite">0 SEK</div>
-      </div>
-      <div class="row kicker">
-        <div>Per vecka</div>
-        <div id="perWeek" aria-live="polite">0 SEK</div>
-      </div>
+      <div class="row"><div>Summa per år (12×)</div><div id="yearly" aria-live="polite">0 SEK</div></div>
+      <div class="row kicker"><div>Per vecka</div><div id="perWeek" aria-live="polite">0 SEK</div></div>
       <hr class="hr">
-      <div class="row"><div>Valda tjänster</div><div id="count" aria-live="polite">0</div></div>
+      <div class="row"><div>Valda paket</div><div id="count" aria-live="polite">0</div></div>
       <p class="note">Tips: kopiera summeringen och klistra in i mejl eller offert.</p>
       <button id="copyBtn" class="btn" style="width:100%">Kopiera summering</button>
     </aside>
   </main>
 
 <script>
-/* === KONFIG – fasta SEK-priser (inkl moms i listpris) === */
+/* === KONFIG – kategoriupplägg & prisnivåer (kan justeras) ===
+   En (1) vald plan per kategori (service.id). Kategorier kan kombineras. */
 const CONFIG = {
   currency: 'SEK',
+  leftOrder:  ['broadband','sport'],          // renderas i vänster kolumn
+  rightOrder: ['tv','streaming','film'],      // renderas i höger kolumn
   services: [
-    {
-      id:'netflix', name:'Netflix',
-      plans:[
-        { id:'basic',    label:'Basic',            priceSEK: 109 },
-        { id:'standard', label:'Standard',         priceSEK: 149 },
-        { id:'premium',  label:'Premium (4K)',     priceSEK: 199 }
+    /* Bredband – välj en hastighet */
+    { id:'broadband', name:'Bredband',
+      plans: [
+        { id:'bb150', label:'150 Mbit/s',  priceSEK:349 },
+        { id:'bb300', label:'300 Mbit/s',  priceSEK:389 },
+        { id:'bb500', label:'500 Mbit/s',  priceSEK:439 },
+        { id:'bb600', label:'600 Mbit/s',  priceSEK:489 },
+        { id:'bb1000',label:'1000 Mbit/s', priceSEK:599 },
       ]
     },
-    {
-      id:'disney', name:'Disney+',
-      plans:[
-        { id:'ads',      label:'Standard med reklam',           priceSEK: 59  },
-        { id:'standard', label:'Standard (utan reklam)',        priceSEK: 99  },
-        { id:'premium',  label:'Premium (4K, utan reklam)',     priceSEK: 139 }
+
+    /* TV – paket (Mini, Mellan, Max, Mycket) */
+    { id:'tv', name:'TV-paket',
+      plans: [
+        { id:'tvMini',   label:'Mini',   priceSEK:249 },
+        { id:'tvMellan', label:'Mellan', priceSEK:399 },
+        { id:'tvMax',    label:'Max',    priceSEK:499 },
+        { id:'tvMycket', label:'Mycket', priceSEK:549 },
       ]
     },
-    {
-      id:'max', name:'Max (HBO/Discovery)',
-      /* Viktigt: Sport är egna fristående planer – inget tillägg krävs */
-      plans:[
-        { id:'basicAds',    label:'Basic med reklam',               priceSEK: 89  },
-        { id:'standard',    label:'Standard (utan reklam, FHD)',    priceSEK: 129 },
-        { id:'premium',     label:'Premium (4K, utan reklam)',      priceSEK: 169 },
-        { id:'sportBase',   label:'Sport Bas (live-sport)',         priceSEK: 260 },
-        { id:'sportPremium',label:'Sport Premium (mer live & HD)',  priceSEK: 360 },
-        { id:'sportTotal',  label:'Sport Total (störst utbud)',     priceSEK: 460 }
-      ],
-      groups: [
-        { title: 'Underhållning', ids: ['basicAds','standard','premium'] },
-        { title: 'Sport',         ids: ['sportBase','sportPremium','sportTotal'] }
+
+    /* Streaming – Mer, Maxad */
+    { id:'streaming', name:'Streaming',
+      plans: [
+        { id:'strMer',   label:'Mer',    priceSEK:399 },
+        { id:'strMaxad', label:'Maxad',  priceSEK:499 },
       ]
     },
-    {
-      id:'prime', name:'Amazon Prime Video',
-      plans:[
-        { id:'ads',      label:'Med reklam (ingår i Prime)',    priceSEK: 59  },
-        { id:'adfree',   label:'Utan reklam (Prime + tillägg)', priceSEK: 88  }
+
+    /* Sport – kan kombineras med TV/Streaming, men här väljer man ett sportpaket */
+    { id:'sport', name:'Sportpaket',
+      plans: [
+        { id:'sportBas',  label:'Sport Bas',  priceSEK:199 },
+        { id:'sportStor', label:'Sport Stor', priceSEK:299 },
+        { id:'sportTotal',label:'Sport Total',priceSEK:399 },
       ]
     },
-    {
-      id:'tv4', name:'TV4 Play',
-      plans:[
-        { id:'free',       label:'Gratis (med reklam)',           priceSEK: 0   },
-        { id:'plus',       label:'Plus (med reklam)',             priceSEK: 69  },
-        { id:'plusNoAds',  label:'Plus (utan reklam)',            priceSEK: 169 },
-        { id:'sportAds',   label:'Sport (med reklam)',            priceSEK: 349 },
-        { id:'sport',      label:'Sport (utan reklam)',           priceSEK: 399 },
-        { id:'sportTotal', label:'Sport Total (utan reklam)',     priceSEK: 599 }
+
+    /* Film – tilläggs-/filmkategori */
+    { id:'film', name:'Filmpaket',
+      plans: [
+        { id:'filmBas',  label:'Film Bas',  priceSEK:149 },
+        { id:'filmStor', label:'Film Stor', priceSEK:249 },
+        { id:'hboMax',   label:'HBO Max',   priceSEK:149 },
       ]
     },
-    {
-      id:'viaplay', name:'Viaplay',
-      plans:[
-        { id:'films',    label:'Film & Serier',                   priceSEK: 169 },
-        { id:'medium',   label:'Medium (sport)',                  priceSEK: 399 },
-        { id:'totalAds', label:'Total (med reklam)',              priceSEK: 649 },
-        { id:'total',    label:'Total (utan reklam)',             priceSEK: 699 }
-      ]
-    }
   ]
 };
 
@@ -178,84 +165,65 @@ const fmt = (value) => `${value.toFixed(0)} SEK`;
 const $ = (sel, root=document)=>root.querySelector(sel);
 const $$ = (sel, root=document)=>[...root.querySelectorAll(sel)];
 
-/* === Rendering === */
-function renderServices(){
-  const wrap = document.getElementById('services');
-  wrap.innerHTML = '';
-  CONFIG.services.forEach(s => {
-    const card = document.createElement('div');
-    card.className = 'card service';
+/* === Rendering av en kategori (service) === */
+function renderServiceCard(service){
+  const card = document.createElement('div');
+  card.className = 'card service';
 
-    // Stöd för (frivilliga) grupper, används för Max
-    let groupsHTML = '';
-    if (s.groups && s.groups.length){
-      groupsHTML = s.groups.map(g=>{
-        const rows = g.ids.map(pid=>{
-          const p = s.plans.find(x=>x.id===pid);
-          const radioId = `${s.id}-${p.id}`;
-          return `
-            <div class="plan">
-              <label for="${radioId}">
-                <input type="radio" name="${s.id}" id="${radioId}" value="${p.id}">
-                <div>${p.label}</div>
-              </label>
-              <div class="price">${fmt(p.priceSEK)}</div>
-            </div>`;
-        }).join('');
-        return `<div class="subhead">${g.title}</div><div class="plans">${rows}</div>`;
-      }).join('');
-    }
+  const plansHTML = service.plans.map(p=>{
+    const radioId = `${service.id}-${p.id}`;
+    return `
+      <div class="plan">
+        <label for="${radioId}">
+          <input type="radio" name="${service.id}" id="${radioId}" value="${p.id}">
+          <div>${p.label}</div>
+        </label>
+        <div class="price">${fmt(p.priceSEK)}</div>
+      </div>`;
+  }).join('');
 
-    card.innerHTML = `
-      <header>
-        <h2>${s.name}</h2>
-        <span class="muted">Välj paket/plan</span>
-      </header>
-      ${groupsHTML || `<div class="plans" id="plans-${s.id}"></div>`}
-      <div class="note">Valt: <span id="sel-${s.id}">Inget</span></div>
-    `;
-    wrap.appendChild(card);
+  card.innerHTML = `
+    <header>
+      <h2>${service.name}</h2>
+      <span class="muted">Välj paket</span>
+    </header>
+    <div class="plans">${plansHTML}</div>
+    <div class="note">Valt: <span id="sel-${service.id}">Inget</span></div>
+  `;
 
-    // Om grupper användes ovan, behöver vi bara hooka inputs; annars rendera vanliga planer här
-    if (!(s.groups && s.groups.length)){
-      const plansDiv = card.querySelector('#plans-'+s.id);
-      s.plans.forEach(p => {
-        const row = document.createElement('div');
-        row.className = 'plan';
-        const radioId = `${s.id}-${p.id}`;
-        row.innerHTML = `
-          <label for="${radioId}">
-            <input type="radio" name="${s.id}" id="${radioId}" value="${p.id}">
-            <div>${p.label}</div>
-          </label>
-          <div class="price">${fmt(p.priceSEK)}</div>
-        `;
-        plansDiv.appendChild(row);
-      });
-    }
-
-    // Lyssna på alla radio i denna service
-    $$(`input[type=radio][name="${s.id}"]`, card).forEach(input=>{
-      input.addEventListener('change', ()=>{
-        selectedPlans[s.id] = input.value;
-        highlightSelectedPlan(s.id, input.id);
-        const plan = s.plans.find(p=>p.id===input.value);
-        document.getElementById('sel-'+s.id).textContent = plan ? plan.label : 'Inget';
-        updateTotals();
-      });
+  // lyssna på ändringar
+  $$(`input[type=radio][name="${service.id}"]`, card).forEach(input=>{
+    input.addEventListener('change', ()=>{
+      selectedPlans[service.id] = input.value;
+      highlightSelected(service.id, input.id, card);
+      const plan = service.plans.find(p=>p.id===input.value);
+      card.querySelector('#sel-'+service.id).textContent = plan ? plan.label : 'Inget';
+      updateTotals();
     });
   });
-  updateTotals();
+
+  return card;
 }
 
-/* Markera vald plan visuellt */
-function highlightSelectedPlan(serviceId, pickedRadioId){
-  // kan finnas flera .plans-block om grupper används
-  $$(`.plan`, document.getElementById('services'))
-    .filter(el => el.querySelector(`input[name="${serviceId}"]`))
-    .forEach(el => el.classList.remove('selected'));
-  const picked = document.getElementById(pickedRadioId)?.closest('.plan');
+/* Markera vald plan inom kategorin */
+function highlightSelected(serviceId, pickedRadioId, scope){
+  $$('.plan', scope).forEach(el => el.classList.remove('selected'));
+  const picked = scope.querySelector('#'+CSS.escape(pickedRadioId))?.closest('.plan');
   if (picked) picked.classList.add('selected');
+}
+
+/* === Rendera hela layouten: vänster/höger kolumn enligt order === */
+function renderColumns(){
+  const leftWrap = document.getElementById('leftCol');
+  const rightWrap = document.getElementById('rightCol');
+  leftWrap.innerHTML = '';
+  rightWrap.innerHTML = '';
+
+  const servicesById = Object.fromEntries(CONFIG.services.map(s=>[s.id,s]));
+  CONFIG.leftOrder.forEach(id => leftWrap.appendChild(renderServiceCard(servicesById[id])));
+  CONFIG.rightOrder.forEach(id => rightWrap.appendChild(renderServiceCard(servicesById[id])));
+
+  updateTotals();
 }
 
 /* Summeringar */
@@ -264,7 +232,6 @@ function updateTotals(){
   const chipsWrap = document.getElementById('selectedChips');
   chipsWrap.innerHTML = '';
 
-  // Planer
   Object.entries(selectedPlans).forEach(([sid,pid])=>{
     const svc = CONFIG.services.find(s=>s.id===sid);
     const plan = svc?.plans.find(p=>p.id===pid);
@@ -291,7 +258,7 @@ function updateTotals(){
 /* Kopiera summering */
 function copySummary(){
   let lines = [];
-  lines.push('Streamingkostnad – Summering');
+  lines.push('Bredbands- och TV-kompassen – Summering');
   lines.push('');
 
   Object.entries(selectedPlans).forEach(([sid,pid])=>{
@@ -325,7 +292,7 @@ function resetAll(){
 
 /* Tema – toggle + persistence */
 function initTheme(){
-  const saved = localStorage.getItem('streaming-theme');
+  const saved = localStorage.getItem('compass-theme');
   const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
   const initial = saved || (prefersLight ? 'light' : 'dark');
   document.documentElement.setAttribute('data-theme', initial);
@@ -338,12 +305,12 @@ function initTheme(){
     const theme = sw.checked ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', theme);
     document.getElementById('themeLabel').textContent = sw.checked ? 'Ljust läge' : 'Mörkt läge';
-    localStorage.setItem('streaming-theme', theme);
+    localStorage.setItem('compass-theme', theme);
   });
 }
 
 /* Init */
-renderServices();
+renderColumns();
 initTheme();
 
 document.getElementById('vat').addEventListener('input', updateTotals);
